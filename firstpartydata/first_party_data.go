@@ -352,104 +352,106 @@ func resolveSite(fpdConfig *openrtb_ext.ORTB2, bidRequestSite *openrtb2.Site, gl
 			newSite.Ext = extData
 		}
 	}
-	_, bidderFpdSiteContentPresent := fpdConfigSite[contentKey]
-	if fpdConfigSite != nil {
-		newSite, err = mergeSites(&newSite, fpdConfigSite, bidderName, openRtbGlobalFPD)
-	}
-	if !bidderFpdSiteContentPresent && openRtbGlobalFPD != nil && len(openRtbGlobalFPD[siteContentDataKey]) > 0 {
-		//bidder specific fpd site.content takes precedence over global site.content.data
-		newSite.Content = &openrtb2.Content{Data: openRtbGlobalFPD[siteContentDataKey]}
-	}
+	newSite, err = mergeSites(&newSite, fpdConfigSite, bidderName, openRtbGlobalFPD)
 	return &newSite, err
 
 }
 func mergeSites(originalSite *openrtb2.Site, fpdConfigSite map[string]json.RawMessage, bidderName string, openRtbGlobalFPD map[string][]openrtb2.Data) (openrtb2.Site, error) {
-
 	var err error
 	newSite := *originalSite
 
-	if page, present := fpdConfigSite[pageKey]; present {
-		sitePage, err := unmarshalJSONToString(page)
-		if err != nil {
-			return newSite, err
-		}
-		//apply bidder specific fpd if present
-		//result site should have ID or Page, fpd becomes incorrect if it overwrites page to empty one and ID is empty in original site
-		if sitePage == "" && newSite.Page != "" && newSite.ID == "" {
-			return newSite, &errortypes.BadInput{
-				Message: fmt.Sprintf("incorrect First Party Data for bidder %s: Site object cannot set empty page if req.site.id is empty", bidderName),
+	_, bidderFpdSiteContentPresent := fpdConfigSite[contentKey]
+	if fpdConfigSite != nil {
+
+		if page, present := fpdConfigSite[pageKey]; present {
+			sitePage, err := unmarshalJSONToString(page)
+			if err != nil {
+				return newSite, err
 			}
+			//apply bidder specific fpd if present
+			//result site should have ID or Page, fpd becomes incorrect if it overwrites page to empty one and ID is empty in original site
+			if sitePage == "" && newSite.Page != "" && newSite.ID == "" {
+				return newSite, &errortypes.BadInput{
+					Message: fmt.Sprintf("incorrect First Party Data for bidder %s: Site object cannot set empty page if req.site.id is empty", bidderName),
+				}
 
+			}
+			newSite.Page = sitePage
+			delete(fpdConfigSite, pageKey)
 		}
-		newSite.Page = sitePage
-		delete(fpdConfigSite, pageKey)
-	}
-	if name, present := fpdConfigSite[nameKey]; present {
-		newSite.Name, err = unmarshalJSONToString(name)
-		if err != nil {
-			return newSite, err
+		if name, present := fpdConfigSite[nameKey]; present {
+			newSite.Name, err = unmarshalJSONToString(name)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, nameKey)
 		}
-		delete(fpdConfigSite, nameKey)
-	}
-	if domain, present := fpdConfigSite[domainKey]; present {
-		newSite.Domain, err = unmarshalJSONToString(domain)
-		if err != nil {
-			return newSite, err
+		if domain, present := fpdConfigSite[domainKey]; present {
+			newSite.Domain, err = unmarshalJSONToString(domain)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, domainKey)
 		}
-		delete(fpdConfigSite, domainKey)
-	}
-	if cat, present := fpdConfigSite[catKey]; present {
-		newSite.Cat, err = unmarshalJSONToStringArray(cat)
-		if err != nil {
-			return newSite, err
+		if cat, present := fpdConfigSite[catKey]; present {
+			newSite.Cat, err = unmarshalJSONToStringArray(cat)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, catKey)
 		}
-		delete(fpdConfigSite, catKey)
-	}
-	if sectionCat, present := fpdConfigSite[sectionCatKey]; present {
-		newSite.SectionCat, err = unmarshalJSONToStringArray(sectionCat)
-		if err != nil {
-			return newSite, err
+		if sectionCat, present := fpdConfigSite[sectionCatKey]; present {
+			newSite.SectionCat, err = unmarshalJSONToStringArray(sectionCat)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, sectionCatKey)
 		}
-		delete(fpdConfigSite, sectionCatKey)
-	}
-	if pageCat, present := fpdConfigSite[pageCatKey]; present {
-		newSite.PageCat, err = unmarshalJSONToStringArray(pageCat)
-		if err != nil {
-			return newSite, err
+		if pageCat, present := fpdConfigSite[pageCatKey]; present {
+			newSite.PageCat, err = unmarshalJSONToStringArray(pageCat)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, pageCatKey)
 		}
-		delete(fpdConfigSite, pageCatKey)
-	}
-	if search, present := fpdConfigSite[searchKey]; present {
-		newSite.Search, err = unmarshalJSONToString(search)
-		if err != nil {
-			return newSite, err
+		if search, present := fpdConfigSite[searchKey]; present {
+			newSite.Search, err = unmarshalJSONToString(search)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, searchKey)
 		}
-		delete(fpdConfigSite, searchKey)
-	}
-	if keywords, present := fpdConfigSite[keywordsKey]; present {
-		newSite.Keywords, err = unmarshalJSONToString(keywords)
-		if err != nil {
-			return newSite, err
+		if keywords, present := fpdConfigSite[keywordsKey]; present {
+			newSite.Keywords, err = unmarshalJSONToString(keywords)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, keywordsKey)
 		}
-		delete(fpdConfigSite, keywordsKey)
-	}
-	if ref, present := fpdConfigSite[refKey]; present {
-		newSite.Ref, err = unmarshalJSONToString(ref)
-		if err != nil {
-			return newSite, err
+		if ref, present := fpdConfigSite[refKey]; present {
+			newSite.Ref, err = unmarshalJSONToString(ref)
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, refKey)
 		}
-		delete(fpdConfigSite, refKey)
-	}
-	if siteContent, present := fpdConfigSite[contentKey]; present {
-		newSite.Content, err = mergeContents(originalSite.Content, siteContent, openRtbGlobalFPD[siteContentDataKey])
-		if err != nil {
-			return newSite, err
+		if siteContent, present := fpdConfigSite[contentKey]; present {
+			newSite.Content, err = mergeContents(originalSite.Content, siteContent, openRtbGlobalFPD[siteContentDataKey])
+			if err != nil {
+				return newSite, err
+			}
+			delete(fpdConfigSite, contentKey)
 		}
-		delete(fpdConfigSite, contentKey)
+
+		if len(fpdConfigSite) > 0 {
+			newSite.Ext, err = resolveExtension(fpdConfigSite, originalSite.Ext)
+		}
+
 	}
 
-	if len(fpdConfigSite) > 0 {
-		newSite.Ext, err = resolveExtension(fpdConfigSite, originalSite.Ext)
+	if !bidderFpdSiteContentPresent && openRtbGlobalFPD != nil && len(openRtbGlobalFPD[siteContentDataKey]) > 0 {
+		//bidder specific fpd site.content takes precedence over global site.content.data
+		newSite.Content = &openrtb2.Content{Data: openRtbGlobalFPD[siteContentDataKey]}
 	}
 
 	return newSite, err
@@ -668,16 +670,16 @@ func ExtractFPDForBidders(req *openrtb_ext.RequestWrapper) (map[openrtb_ext.Bidd
 
 }
 
-func mergeContents(originalContent *openrtb2.Content, newContent json.RawMessage, globalContentData []openrtb2.Data) (*openrtb2.Content, error) {
+func mergeContents(originalContent *openrtb2.Content, fpdBidderConfigContent json.RawMessage, globalContentData []openrtb2.Data) (*openrtb2.Content, error) {
 	if originalContent == nil {
-		return unmarshalJSONToContent(newContent)
+		return unmarshalJSONToContent(fpdBidderConfigContent)
 	}
-	newContentDataJson, _, _, err := jsonparser.Get(newContent, dataKey)
+	newContentDataJson, _, _, err := jsonparser.Get(fpdBidderConfigContent, dataKey)
 	if err != nil && err != jsonparser.KeyPathNotFoundError {
 		return nil, err
 	}
 	var newContentData []openrtb2.Data
-	if !(err != nil && err == jsonparser.KeyPathNotFoundError) {
+	if err == nil {
 		newContentData, err = unmarshalJSONToData(newContentDataJson)
 		if err != nil {
 			return nil, err
@@ -687,7 +689,7 @@ func mergeContents(originalContent *openrtb2.Content, newContent json.RawMessage
 	if err != nil {
 		return nil, err
 	}
-	newFinalContentBytes, err := jsonpatch.MergePatch(originalContentBytes, newContent)
+	newFinalContentBytes, err := jsonpatch.MergePatch(originalContentBytes, fpdBidderConfigContent)
 	if err != nil {
 		return nil, err
 	}
